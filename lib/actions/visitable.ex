@@ -33,43 +33,44 @@ defmodule PageObject.Actions.Visitable do
 
   defmacro visitable(action_name, url) do
     quote do
-      defp get_url(url, segments) do
-        url_parts = Url.convert_url_to_dynamic_segments(url)
-
-        Enum.reduce(segments, url, fn({segment_key, segment_value}, acc) ->
-          # TODO replace with URI module usage
-          case Url.is_query_string?(segment_key, url_parts) do
-            true ->
-              Url.put_query_string(acc, segment_key, segment_value)
-            false ->
-              String.replace(
-                acc,
-                ":" <> Atom.to_string(segment_key),
-                URI.encode(to_string(segment_value))
-              )
-          end
-        end)
-      end
-
       def unquote(action_name)(module \\ __MODULE__, segments \\ [])
 
       def unquote(action_name)(segments, _) when is_list(segments) do
         unquote(url)
-        |> get_url(segments)
+        |> unquote(__MODULE__).get_url(segments)
         |> navigate_to
         __MODULE__
       end
 
       def unquote(action_name)(module, segments) do
         unquote(url)
-        |> get_url(segments)
+        |> unquote(__MODULE__).get_url(segments)
         |> navigate_to
         module
       end
 
       def unquote(:"#{action_name}_url")(segments \\ []) do
-        get_url(unquote(url), segments)
+        unquote(__MODULE__).get_url(unquote(url), segments)
       end
     end
+  end
+
+  @doc false
+  def get_url(url, segments) do
+    url_parts = Url.convert_url_to_dynamic_segments(url)
+
+    Enum.reduce(segments, url, fn({segment_key, segment_value}, acc) ->
+      # TODO replace with URI module usage
+      case Url.is_query_string?(segment_key, url_parts) do
+        true ->
+          Url.put_query_string(acc, segment_key, segment_value)
+        false ->
+          String.replace(
+            acc,
+            ":" <> Atom.to_string(segment_key),
+            URI.encode(to_string(segment_value))
+          )
+      end
+    end)
   end
 end
